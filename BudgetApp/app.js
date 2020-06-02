@@ -16,7 +16,16 @@ const budgetController = (function (){
         totals: {
             exp: 0,
             inc: 0
-        }
+        },
+        budget: 0,
+        percentage: -1
+    }
+
+    // calculate total amount of expenses or income and update final total value for relevant user entry
+    const calculateTotal = function(userEntryType){
+        let total = 0;
+        data.allItems[userEntryType].forEach(userEntryArrElement => total += userEntryArrElement.value);
+        data.totals[userEntryType] = total;
     }
 
     const generateId = function(userEntryDataStorage, type){
@@ -44,6 +53,30 @@ const budgetController = (function (){
 
             return userEntryValue;
         },
+        calculateBudget: function(){
+            // calculate total income and expenses
+            calculateTotal('exp');
+            calculateTotal('inc');
+
+
+            // calculate budget: income - expenses
+            data.budget = data.totals.inc - data.totals.exp;    
+
+            // calculate the percentage of income that has been spent
+            if(data.totals.inc > 0){
+                data.percentage = Math.round((data.totals.exp / data.totals.inc) * 100);
+            } else {
+                data.percentage = -1;
+            }
+        },
+        getBudget: function(){
+            return {
+                budget: data.budget,
+                totalInc: data.totals.inc,
+                totalExp: data.totals.exp,
+                percentage: data.percentage
+            }
+        },
         testController: function(){
             return data;
         }
@@ -59,7 +92,11 @@ const UIController = (function(){
         inputValue: '.add__value',
         addButton: '.add__btn',
         incomeContainer: '.income__list',
-        expensesContainer: '.expenses__list'        
+        expensesContainer: '.expenses__list',
+        budgetLabel: '.budget__value',        
+        incomeLabel: '.budget__income--value',        
+        expensesLabel: '.budget__expenses--value',        
+        percentageLabel: '.budget__expenses--percentage'        
     }
 
     return {
@@ -67,7 +104,9 @@ const UIController = (function(){
             return {
                 type: document.querySelector(DomNames.inputType).value,
                 description: document.querySelector(DomNames.inputDescription).value,
-                value: document.querySelector(DomNames.inputValue).value 
+
+                // value for budget calculator should be number
+                value: parseFloat(document.querySelector(DomNames.inputValue).value) 
             }
         },
         addListItem: function(userEntryObj){
@@ -90,7 +129,20 @@ const UIController = (function(){
             const selectedNodesList = document.querySelectorAll(`${DomNames.inputDescription},${DomNames.inputValue}`);
             const selectedNodesArray = Array.from(selectedNodesList);
             selectedNodesArray.forEach(selectedItem => selectedItem.value = "");
+
+            // return cursor to description input field
             document.querySelector(`${DomNames.inputDescription}`).focus();
+        },
+        // budgetObj is an object returned from BudgetController.getBudget() function
+        displayBudget: function(budgetObj){
+            document.querySelector(DomNames.budgetLabel).textContent = budgetObj.budget;
+            document.querySelector(DomNames.incomeLabel).textContent = budgetObj.totalInc;
+            document.querySelector(DomNames.expensesLabel).textContent = budgetObj.totalExp;
+            if(budgetObj.percentage > 0){
+                document.querySelector(DomNames.percentageLabel).textContent = `${budgetObj.percentage} %`;
+            } else{
+                document.querySelector(DomNames.percentageLabel).textContent = '0 %';
+            }
         },
         getDomNames: function () {
             return DomNames;
@@ -102,21 +154,34 @@ const UIController = (function(){
 
 const controller = (function(uiController, modelController){
 
+    const updateBudget = function(){
+        // 1. Calculate budget
+        modelController.calculateBudget();
+        // 2. return budget
+        const budget = modelController.getBudget();
+        // 3. display budget on UI
+        uiController.displayBudget(budget);
+    }
+    
     var addItemToController = function() {
 
         // 1. Get fields input data
         const userInput = uiController.getInput();
-        
-        // 2. Add item to budget controller
-        const userInputObj = modelController.addItem(userInput.type, userInput.description, userInput.value);
 
-        // 3. Add item to UI
-        uiController.addListItem(userInputObj);
-        
-        // 4. Clear input fields
-        uiController.clearInputFields();
+        // description should not be empty, budget value should be number greater than 0
+        if(userInput.description !== "" && !isNaN(userInput.value) && userInput.value > 0){
+            // 2. Add item to budget controller
+            const userInputObj = modelController.addItem(userInput.type, userInput.description, userInput.value);
+    
+            // 3. Add item to UI
+            uiController.addListItem(userInputObj);
+            
+            // 4. Clear input fields
+            uiController.clearInputFields();
 
-
+            // 5. Calculate and update budget
+            updateBudget();
+        }
     }
     
     
@@ -138,7 +203,15 @@ const controller = (function(uiController, modelController){
 
     return {
         init: function(){
-            return setEventListeners();
+            // displayBudget() function sets totals values according to values from the passed as parameter object
+            // to set totals to 0 at start up we just need to pass that object with all values set to 0
+            uiController.displayBudget({
+                budget: 0,
+                totalInc: 0,
+                totalExp: 0,
+                percentage: 0
+            });
+            setEventListeners();
         }
     };
 
