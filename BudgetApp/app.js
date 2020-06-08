@@ -96,7 +96,8 @@ const UIController = (function(){
         budgetLabel: '.budget__value',        
         incomeLabel: '.budget__income--value',        
         expensesLabel: '.budget__expenses--value',        
-        percentageLabel: '.budget__expenses--percentage'        
+        percentageLabel: '.budget__expenses--percentage',
+        incomeExpensesContainer : '.container clearfix'        
     }
 
     return {
@@ -113,10 +114,10 @@ const UIController = (function(){
             let itemHtml, userEntryContainer;
             // create HTML string with placeholder text
             if(userEntryObj.type === 'inc'){
-                itemHtml = `<div class="item clearfix" id="income-${userEntryObj.id}"><div class="item__description">${userEntryObj.description}</div><div class="right clearfix"><div class="item__value">+ ${userEntryObj.value}</div><div class="item__delete"><button class="item__delete--btn"><i class="ion-ios-close-outline"></i></button></div></div></div>`;
+                itemHtml = `<div class="item clearfix" id="inc-${userEntryObj.id}"><div class="item__description">${userEntryObj.description}</div><div class="right clearfix"><div class="item__value">+ ${userEntryObj.value}</div><div class="item__delete"><button class="item__delete--btn"><i class="ion-ios-close-outline"></i></button></div></div></div>`;
                 userEntryContainer = DomNames.incomeContainer;
             } else if(userEntryObj.type === 'exp') {
-                itemHtml = `<div class="item clearfix" id="expense-${userEntryObj.id}"><div class="item__description">${userEntryObj.description}</div><div class="right clearfix"><div class="item__value">- ${userEntryObj.value}</div><div class="item__percentage">21%</div><div class="item__delete"><button class="item__delete--btn"><i class="ion-ios-close-outline"></i></button></div></div></div>`;
+                itemHtml = `<div class="item clearfix" id="exp-${userEntryObj.id}"><div class="item__description">${userEntryObj.description}</div><div class="right clearfix"><div class="item__value">- ${userEntryObj.value}</div><div class="item__percentage">21%</div><div class="item__delete"><button class="item__delete--btn"><i class="ion-ios-close-outline"></i></button></div></div></div>`;
                 userEntryContainer = DomNames.expensesContainer;
             }
 
@@ -199,7 +200,32 @@ const controller = (function(uiController, modelController){
             }
         });
 
-    }    
+        // listener is set not on particular expense or income but on parent element of them both
+        document.querySelector(DomNames.incomeExpensesContainer).addEventListener('click', ctrlDeleteItem)
+
+    }  
+    
+    // since this function will be invoked as callback function of event listener it could have access to the event
+    // thats why that event is here 
+    const ctrlDeleteItem = function(event){
+        // event.target - returns node that was hit by event. In this case clicked
+        // event.target.parentNode - returns parent node
+        // also it's possible to traverse the DOM up by event.target.parentNode.parentNode.parentNode and so on
+
+        const clickedItemId = event.target.parentNode.parentNode.parentNode.parentNode.id;
+        if(clickedItemId){
+            // assumed that clicked items would be inc-1, inc-2, exp-1 etc.
+            const type = clickedItemId.split('-')[0];
+            const id = clickedItemId.split('-')[1];
+
+            // 1. Delete item from the data structure
+
+            // 2. Delete item from the UI
+
+            // 3. Update and show new budget
+
+        }
+    }
 
     return {
         init: function(){
